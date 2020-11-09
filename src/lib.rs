@@ -1,21 +1,20 @@
 //! # LDtk Json structure (version 0.5.1-beta)
+//!
 //! <https://github.com/deepnight/ldtk/blob/master/JSON_DOC.md>
+//!
 //! This was converted by hand, in an hour one evening,
 //! from the above Markdown documentation, to Rust code,
-//! using lots of regular expressions.
+//! using lots of regular expressions and the serde and serde_json docs.
 
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Todo;
-
-type Dynamic = Todo;
-// type Object = Todo;
-
+type Dynamic = Value; // temporary
 type Float = f32;
 type Int = i32;
 type Bool = bool;
 type Array<T> = Vec<T>;
+
 /// LDtk Json root
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Root {
@@ -147,27 +146,29 @@ pub struct TileInstance {
     /// Internal data used by the editor.
     /// For auto-layer tiles: `[ruleId, coordId, tileId]`.
     /// For tile-layer tiles: `[coordId, tileId]`.
-    // TODO: Serialize as a struct instead using serde_tuple
+    // TODO: Deserialize as a struct AutoLayerTileIds { ruleId, coordId, tileId } and struct TileLayerTileIds { coordId, tileId } instead using serde_tuple
     #[serde(rename = "d")]
     pub d: Array<Int>,
     /// "Flip bits", a 2-bits integer to represent the mirror transformations of the tile.          - Bit 0 = X flip          - Bit 1 = Y flip          Examples: f=0 (no flip), f=1 (X flip only), f=2 (Y flip only), f=3 (both flips)
     #[serde(rename = "f")]
     pub f: Int,
     /// (Changed 0.5.0) Pixel coordinates of the tile in the **layer** (`[x,y]` format). Don't forget optional layer offsets, if they exist!
-    // TODO: Serialize as a struct instead using serde_tuple
+    // TODO: Deserialize as a struct Coord { x, y } instead using serde_tuple
     #[serde(rename = "px")]
-    pub px: Array<Int>,
+    pub px: Coord,
     /// Pixel coordinates of the tile in the **tileset** (`[x,y]` format)
     #[serde(rename = "src")]
-    pub src: Array<Int>,
+    // TODO: Deserialize as a struct Coord { x, y } instead using serde_tuple
+    pub src: Coord,
 }
 
 /// Entity instance
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct EntityInstance {
     /// (Changed 0.4.0) Grid-based coordinates (`[x,y]` format)
+    // TODO: Deserialize as a struct Coord { x, y }  instead using serde_tuple
     #[serde(rename = "__grid")]
-    pub __grid: Array<Int>,
+    pub __grid: Coord,
     /// Unique String identifier
     #[serde(rename = "__identifier")]
     pub __identifier: String,
@@ -181,8 +182,9 @@ pub struct EntityInstance {
     #[serde(rename = "fieldInstances")]
     pub field_instances: Array<FieldInstance>,
     /// (Changed 0.4.0) Pixel coordinates (`[x,y]` format). Don't forget optional layer offsets, if they exist!
+    // TODO: Deserialize as a struct Coord { x, y }  instead using serde_tuple
     #[serde(rename = "px")]
-    pub px: Array<Int>,
+    pub px: Coord,
 }
 
 ///
@@ -191,7 +193,7 @@ pub struct EntityTile {
     /// An array of 4 Int values that refers to the tile in the tileset image: `[ x, y, width, height ]`
     // TODO: change to struct Rect { x, y, width, height }
     #[serde(rename = "srcRect")]
-    pub src_rect: Array<Int>,
+    pub src_rect: Rect,
     /// Tileset ID
     #[serde(rename = "tilesetUid")]
     pub tileset_uid: Int,
@@ -264,10 +266,10 @@ pub struct LayerDefinition {
     /// Unique String identifier
     #[serde(rename = "identifier")]
     pub identifier: String,
-    /// <sup>Only *IntGrid layer*</sup> This object contains the following fields: <ul><li>**`color`** **(String**) *Hex color "#rrggbb"*</li><li>**`identifier`** **(String**)</li></ul>
+    /// <sup>Only *IntGrid layer*</sup>
     // TODO: see above TODO: unwrap from Option<T> when included, omit when not included
     #[serde(rename = "intGridValues")]
-    pub int_grid_values: Option<Array<Object>>,
+    pub int_grid_values: Option<Array<IntGridValue>>,
     /// (Added 0.5.0) X offset of the layer, in pixels (IMPORTANT: this should be added to the `LayerInstance` optional offset)
     #[serde(rename = "pxOffsetX")]
     pub px_offset_x: Int,
@@ -289,6 +291,15 @@ pub struct LayerDefinition {
     /// Unique Int identifier
     #[serde(rename = "uid")]
     pub uid: Int,
+}
+
+/// IntGrid value
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct IntGridValue {
+    /// Hex color "#rrggbb"
+    color: String,
+    /// **)</li>
+    identifier: String,
 }
 
 ///
@@ -338,6 +349,21 @@ pub struct AutoLayerRuleDefinition {
     #[serde(rename = "flipY")]
     pub flip_y: Bool,
     /// Rule pattern (size x size)
+    ///
+    /// e.g. For an IntGrid with 2 grid values (1 = "walls" and 2 = "floor")
+    /// for a tile size of 3, there are (3x3) 9 cells:
+    /// `[0, 0, 0, 2, 1, 2, 0, 0, 0]` is equivalent to
+    /// ```
+    /// 000
+    /// 212
+    /// 000
+    /// ```
+    /// i.e. at the centre position, if it is a wall (grid value = 1),
+    /// where there is floor (2) either side of it
+    /// and anything (0) above and below it, then apply the rule.
+    ///
+    /// This can also be negative: -2 means if this grid value (floor) is present,
+    /// **don't** draw the cell.
     #[serde(rename = "pattern")]
     pub pattern: Array<Int>,
     /// If TRUE, enable Perlin filtering to only apply rule on specific random area
@@ -416,132 +442,93 @@ pub struct EntityDefinition {
 }
 
 /// Field definition
+///
 /// Sorry this type has no documentation yet.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct FieldDefinition {
-    // TODO
     ///
     #[serde(rename = "__type")]
-    __type: String,
+    pub __type: String,
     ///
     #[serde(rename = "identifier")]
-    identifier: String,
+    pub identifier: String,
     ///
     #[serde(rename = "uid")]
-    uid: Int,
+    pub uid: Int,
     ///
+    // appears to be used internally, can sometimes be an object similar to FieldDefaultValue
     #[serde(rename = "type")]
-    field_type: String,
+    pub field_type: FieldType,
     ///
     #[serde(rename = "isArray")]
-    is_array: Bool,
+    pub is_array: Bool,
     ///
     #[serde(rename = "canBeNull")]
-    can_be_null: Bool,
+    pub can_be_null: Bool,
     ///
     #[serde(rename = "arrayMinLength")]
-    array_min_length: Option<Int>,
+    pub array_min_length: Option<Int>,
     ///
     #[serde(rename = "arrayMaxLength")]
-    array_max_length: Option<Int>,
+    pub array_max_length: Option<Int>,
     ///
     #[serde(rename = "editorDisplayMode")]
-    editor_display_mode: String,
+    pub editor_display_mode: String,
     ///
     #[serde(rename = "editorDisplayPos")]
-    editor_display_pos: String,
+    pub editor_display_pos: String,
     ///
     #[serde(rename = "editorAlwaysShow")]
-    editor_always_show: Bool,
+    pub editor_always_show: Bool,
     ///
     #[serde(rename = "min")]
-    min: Option<Int>,
+    pub min: Option<Int>,
     ///
     #[serde(rename = "max")]
-    max: Option<Int>,
+    pub max: Option<Int>,
     ///
-    #[serde(rename = "defaultOverride")]
-    default_override: Option<DefaultOverride>,
-    // {
-    //     "identifier": "Label",
-    //     "__type": "String",
-    //     "uid": 101,
-    //     "type": "F_Text",
-    //     "isArray": false,
-    //     "canBeNull": false,
-    //     "arrayMinLength": null,
-    //     "arrayMaxLength": null,
-    //     "editorDisplayMode": "ValueOnly",
-    //     "editorDisplayPos": "Center",
-    //     "editorAlwaysShow": false,
-    //     "min": null,
-    //     "max": null,
-    //     "defaultOverride": null
-    // },
-    // {
-    //     "identifier": "Color",
-    //     "__type": "Color",
-    //     "uid": 102,
-    //     "type": "F_Color",
-    //     "isArray": false,
-    //     "canBeNull": false,
-    //     "arrayMinLength": null,
-    //     "arrayMaxLength": null,
-    //     "editorDisplayMode": "Hidden",
-    //     "editorDisplayPos": "Above",
-    //     "editorAlwaysShow": false,
-    //     "min": null,
-    //     "max": null,
-    //     "defaultOverride": { "id": "V_Int", "params": [16777215] }
-    // }
-    // {
-    //     "identifier": "colors",
-    //     "__type": "Array<Color>",
-    //     "uid": 26,
-    //     "type": "F_Color",
-    //     "isArray": true,
-    //     "canBeNull": false,
-    //     "arrayMinLength": 1,
-    //     "arrayMaxLength": 2,
-    //     "editorDisplayMode": "Hidden",
-    //     "editorDisplayPos": "Beneath",
-    //     "editorAlwaysShow": false,
-    //     "min": null,
-    //     "max": null,
-    //     "defaultOverride": { "id": "V_Int", "params": [16772997] }
-    // },
-    // {
-    //     "identifier": "loot",
-    //     "__type": "Array<LocalEnum.ItemType>",
-    //     "uid": 21,
-    //     "type": { "id": "F_Enum", "params": [5] },
-    //     "isArray": true,
-    //     "canBeNull": false,
-    //     "arrayMinLength": null,
-    //     "arrayMaxLength": null,
-    //     "editorDisplayMode": "ValueOnly",
-    //     "editorDisplayPos": "Above",
-    //     "editorAlwaysShow": false,
-    //     "min": null,
-    //     "max": null,
-    //     "defaultOverride": null
-    // },
-    // {
-    //     "identifier": "requireKey",
-    //     "__type": "Bool",
-    //     "uid": 28,
-    //     "type": "F_Bool",
-    //     "isArray": false,
-    //     "canBeNull": false,
-    //     "arrayMinLength": null,
-    //     "arrayMaxLength": null,
-    //     "editorDisplayMode": "ValueOnly",
-    //     "editorDisplayPos": "Above",
-    //     "editorAlwaysShow": false,
-    //     "min": null,
-    //     "max": null,
-    //     "defaultOverride": null
-    // }
+    #[serde(rename = "FieldDefaultValue")]
+    pub default_override: Option<FieldDefaultValue>,
+}
+
+/// Field type
+#[derive(Serialize, Deserialize, Debug, Clone)]
+// this should hopefuly deserialize OK, but might be wrong when it re-serializes
+pub enum FieldType {
+    Simple(String),
+    Complex(FieldComplexType),
+}
+
+/// Complex field type
+///
+/// When pointing to an Enum, the param is the uid of the Enum
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct FieldComplexType {
+    ///
+    #[serde(rename = "id")]
+    pub id: String,
+    ///
+    #[serde(rename = "params")]
+    pub params: Array<Param>,
+}
+
+/// Specifies the default for a field
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct FieldDefaultValue {
+    ///
+    #[serde(rename = "id")]
+    pub id: String,
+    ///
+    #[serde(rename = "params")]
+    pub params: Array<Param>,
+}
+
+/// Param
+// this should hopefuly deserialize OK, but might be wrong when it re-serializes
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum Param {
+    String(String),
+    Int(Int),
 }
 
 /// Tileset definition
@@ -571,7 +558,7 @@ pub struct TilesetDefinition {
     ///
     #[serde(rename = "tileGridSize")]
     pub tile_grid_size: Int,
-    /// Unique Intidentifier
+    /// Unique Identifier
     #[serde(rename = "uid")]
     pub uid: Int,
 }
@@ -591,7 +578,41 @@ pub struct EnumDefinition {
     /// Unique Int identifier
     #[serde(rename = "uid")]
     pub uid: Int,
-    /// All possible enum values, with their optional Tile infos. This object contains the following fields: <ul><li>**`__tileSrcRect`** **(Array of Int**)  Added 0.4.0  : *An array of 4 Int values that refers to the tile in the tileset image: `[ x, y, width, height ]`*</li><li>**`id`** **(String**) : *Enum value*</li><li>**`tileId`** **(Int *(can be `null`)***) : *The optional ID of the tile*</li></ul>
+    /// All possible enum values, with their optional Tile infos.
     #[serde(rename = "values")]
-    pub values: Array<Object>,
+    pub values: Array<EnumValue>,
 }
+
+///
+// TODO: provide a way to map this from a LDtk representation to a first-class Rust representation
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct EnumValue {
+    /// (Added 0.4.0) An array of 4 Int values that refers to the tile in the tileset image: `[ x, y, width, height ]`
+    // TODO: Deserialize as a struct Rect { x, y, width, height } instead using serde_tuple
+    #[serde(rename = "__tileSrcRect")]
+    pub __tile_src_rect: Rect,
+    /// Enum value
+    #[serde(rename = "id")]
+    pub id: String,
+    /// (Can be `null`/`None`) The optional ID of the tile
+    #[serde(rename = "tileId")]
+    pub tile_id: Option<Int>,
+}
+
+// temporary
+type Rect = Array<Int>;
+// #[derive(Serialize, Deserialize, Debug, Clone)]
+// pub struct Rect {
+//     pub x: Int,
+//     pub y: Int,
+//     pub width: Int,
+//     pub height: Int,
+// }
+
+// temporary
+type Coord = Array<Int>;
+// #[derive(Serialize, Deserialize, Debug, Clone)]
+// pub struct Coord {
+//     pub x: Int,
+//     pub y: Int,
+// }
