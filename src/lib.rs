@@ -15,6 +15,97 @@ type Int = i32;
 type Bool = bool;
 type Array<T> = Vec<T>;
 
+#[test]
+fn autolayers_2_stamps() -> serde_json::Result<()> {
+    let str = include_str!("../assets/AutoLayers_2_stamps.ldtk");
+    // dbg!(str);
+    // println!("{}", str);
+    // for (i, line) in str.lines().enumerate() {
+    //     println!("{: <3}: {}", i + 1, line);
+    // }
+    let data: Root = serde_json::from_str(str)?;
+    dbg!(data);
+    Ok(())
+}
+
+#[test]
+fn autolayers_1_basic() -> serde_json::Result<()> {
+    let str = include_str!("../assets/AutoLayers_1_basic.ldtk");
+    // dbg!(str);
+    // println!("{}", str);
+    // for (i, line) in str.lines().enumerate() {
+    //     println!("{: <3}: {}", i + 1, line);
+    // }
+    let data: Root = serde_json::from_str(str)?;
+    dbg!(data);
+    Ok(())
+}
+
+#[test]
+fn autolayers_3_mosaic() -> serde_json::Result<()> {
+    let str = include_str!("../assets/AutoLayers_3_Mosaic.ldtk");
+    // dbg!(str);
+    // println!("{}", str);
+    // for (i, line) in str.lines().enumerate() {
+    //     println!("{: <3}: {}", i + 1, line);
+    // }
+    let data: Root = serde_json::from_str(str)?;
+    dbg!(data);
+    Ok(())
+}
+
+#[test]
+fn autolayers_4_advanced() -> serde_json::Result<()> {
+    let str = include_str!("../assets/AutoLayers_4_advanced.ldtk");
+    // dbg!(str);
+    // println!("{}", str);
+    // for (i, line) in str.lines().enumerate() {
+    //     println!("{: <3}: {}", i + 1, line);
+    // }
+    let data: Root = serde_json::from_str(str)?;
+    dbg!(data);
+    Ok(())
+}
+
+#[test]
+fn entities() -> serde_json::Result<()> {
+    let str = include_str!("../assets/Entities.ldtk");
+    // dbg!(str);
+    // println!("{}", str);
+    // for (i, line) in str.lines().enumerate() {
+    //     println!("{: <3}: {}", i + 1, line);
+    // }
+    let data: Root = serde_json::from_str(str)?;
+    dbg!(data);
+    Ok(())
+}
+
+#[test]
+fn typical_2d_platformer_example() -> serde_json::Result<()> {
+    let str = include_str!("../assets/Typical_2D_platformer_example.ldtk");
+    // dbg!(str);
+    // println!("{}", str);
+    // for (i, line) in str.lines().enumerate() {
+    //     println!("{: <3}: {}", i + 1, line);
+    // }
+    let data: Root = serde_json::from_str(str)?;
+    dbg!(data);
+    Ok(())
+}
+
+#[test]
+fn typical_topdown_example() -> serde_json::Result<()> {
+    let str = include_str!("../assets/Typical_TopDown_example.ldtk");
+    // dbg!(str);
+    // println!("{}", str);
+    // for (i, line) in str.lines().enumerate() {
+    //     println!("{: <3}: {}", i + 1, line);
+    // }
+    let data: Root = serde_json::from_str(str)?;
+    dbg!(data);
+    Ok(())
+}
+
 /// LDtk Json root
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Root {
@@ -298,8 +389,8 @@ pub struct LayerDefinition {
 pub struct IntGridValue {
     /// Hex color "#rrggbb"
     color: String,
-    /// **)</li>
-    identifier: String,
+    ///
+    identifier: Option<String>,
 }
 
 ///
@@ -341,7 +432,7 @@ pub struct AutoLayerRuleDefinition {
     pub chance: Float,
     /// If TRUE, enable checker mode
     #[serde(rename = "checker")]
-    pub checker: Bool,
+    pub checker: Checker,
     /// If TRUE, allow rule to be matched by flipping its pattern horizontally
     #[serde(rename = "flipX")]
     pub flip_x: Bool,
@@ -353,7 +444,7 @@ pub struct AutoLayerRuleDefinition {
     /// e.g. For an IntGrid with 2 grid values (1 = "walls" and 2 = "floor")
     /// for a tile size of 3, there are (3x3) 9 cells:
     /// `[0, 0, 0, 2, 1, 2, 0, 0, 0]` is equivalent to
-    /// ```
+    /// ```compile_fail
     /// 000
     /// 212
     /// 000
@@ -403,6 +494,12 @@ pub struct AutoLayerRuleDefinition {
     pub y_modulo: Int,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum Checker {
+    Horizontal,
+    None,
+}
+
 /// Entity definition
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct EntityDefinition {
@@ -429,10 +526,10 @@ pub struct EntityDefinition {
     pub pivot_y: Float,
     /// Tile ID used for optional tile display
     #[serde(rename = "tileId")]
-    pub tile_id: Int,
+    pub tile_id: Option<Int>,
     /// Tileset ID used for optional tile display
     #[serde(rename = "tilesetId")]
-    pub tileset_id: Int,
+    pub tileset_id: Option<Int>,
     /// Unique Int identifier
     #[serde(rename = "uid")]
     pub uid: Int,
@@ -493,6 +590,7 @@ pub struct FieldDefinition {
 
 /// Field type
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(untagged)]
 // this should hopefuly deserialize OK, but might be wrong when it re-serializes
 pub enum FieldType {
     Simple(String),
@@ -526,6 +624,7 @@ pub struct FieldDefaultValue {
 /// Param
 // this should hopefuly deserialize OK, but might be wrong when it re-serializes
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(untagged)]
 pub enum Param {
     String(String),
     Int(Int),
