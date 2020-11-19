@@ -25,3 +25,7 @@ So far, have just mapped the JSON structure to Rust data structures (for the mos
 - [ ] add a lot of serialisation tests to ensure reproducability / round-trippability
 - [ ] (bevy) make it interactive the other way (changes from the bevy app write to the ldtk file)
   - note: ldtk editor doesn't hot reload though
+
+### other ideas
+- actually draw to a texture - see [SiO2](https://github.com/dmitriy-shmilo/sio2) or [`bevy::sprite::4TextureAtlasBuilder`](https://github.com/bevyengine/bevy/blob/master/crates/bevy_sprite/src/texture_atlas_builder.rs)
+- construct a tilemap mesh, where its vertices UV-map many-to-many with a tileset (sprite sheet / texture atlas) texture - see [bevy_tiled] (but I think [bevy_tilemap]() abstracts this away from us)

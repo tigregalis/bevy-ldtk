@@ -1,5 +1,6 @@
 use bevy::{asset::LoadState, prelude::*, sprite::TextureAtlasBuilder};
 use ldtk_rs::{Root, TilesetDefinition};
+use std::collections::HashMap;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let json = include_str!("../assets/AutoLayers_1_basic.ldtk");
@@ -101,7 +102,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 #[derive(Default)]
 pub struct TilesetHandles {
-    handles: Vec<Handle<Texture>>,
+    handles: HashMap<i32, Handle<Texture>>,
     atlas_loaded: bool,
 }
 
@@ -112,9 +113,10 @@ fn setup(
 ) {
     // load the folder and create handles to the files
     for tileset in tilesets.iter() {
-        tileset_handles
-            .handles
-            .push(asset_server.load::<_, _>(tileset.rel_path.as_str()));
+        tileset_handles.handles.insert(
+            tileset.uid,
+            asset_server.load::<_, _>(tileset.rel_path.as_str()),
+        );
     }
 }
 
@@ -133,14 +135,14 @@ fn load_atlas(
 
     // but if we haven't...
     // wait until texture assets are loaded
-    if let LoadState::Loaded =
-        asset_server.get_group_load_state(tileset_handles.handles.iter().map(|handle| handle.id))
+    if let LoadState::Loaded = asset_server
+        .get_group_load_state(tileset_handles.handles.iter().map(|(_, handle)| handle.id))
     {
         // initialise a texture atlas builder
         let mut texture_atlas_builder = TextureAtlasBuilder::default(); // <- why does this need to be outside though?
 
         // add the loaded texture assets to the builder
-        for handle in tileset_handles.handles.iter() {
+        for (_, handle) in tileset_handles.handles.iter() {
             let texture = textures.get(handle).unwrap();
             texture_atlas_builder.add_texture(handle.clone_weak(), &texture);
             // <- what is clone_weak()?
