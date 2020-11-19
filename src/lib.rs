@@ -16,8 +16,8 @@ type Bool = bool;
 type Array<T> = Vec<T>;
 
 #[test]
-fn autolayers_2_stamps() -> serde_json::Result<()> {
-    let str = include_str!("../assets/AutoLayers_2_stamps.ldtk");
+fn autolayers_1_basic() -> serde_json::Result<()> {
+    let str = include_str!("../assets/AutoLayers_1_basic.ldtk");
     // dbg!(str);
     // println!("{}", str);
     // for (i, line) in str.lines().enumerate() {
@@ -29,8 +29,8 @@ fn autolayers_2_stamps() -> serde_json::Result<()> {
 }
 
 #[test]
-fn autolayers_1_basic() -> serde_json::Result<()> {
-    let str = include_str!("../assets/AutoLayers_1_basic.ldtk");
+fn autolayers_2_stamps() -> serde_json::Result<()> {
+    let str = include_str!("../assets/AutoLayers_2_stamps.ldtk");
     // dbg!(str);
     // println!("{}", str);
     // for (i, line) in str.lines().enumerate() {
@@ -136,6 +136,12 @@ pub struct Root {
     /// If TRUE, the Json is partially minified (no indentation, nor line breaks, default is FALSE)
     #[serde(rename = "minifyJson")]
     pub minify_json: Bool,
+}
+
+impl Root {
+    pub fn new(str: &str) -> serde_json::Result<Self> {
+        serde_json::from_str(str)
+    }
 }
 
 /// Level

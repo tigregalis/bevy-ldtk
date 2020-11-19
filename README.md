@@ -9,11 +9,13 @@ So far, have just mapped the JSON structure to Rust data structures (for the mos
 - [x] finish the missing fields/types ("Objects" etc.)
 - [x] add a lot of deserialisation tests (deserialise)
 - [x] actually deserialise from a .ldtk file
-- [ ] (bevy) set up a custom asset + loader
-- [ ] (bevy) design an API that makes use of this, i.e. map from the ldtk file to a bevy scene (entities, resources, components) and rust types
-- [ ] (bevy) hot reloading
-- [ ] (bevy) hot partial-reloading with diffing
-- [ ] (bevy) make it interactive the other way
+- [ ] bevy
+  - [ ] make it work
+  - [ ] make it good
+    - [ ] set up a custom asset + loader
+    - [ ] design an API that makes use of this, i.e. map from the ldtk file to a bevy scene (entities, resources, components) and rust types
+    - [ ] hot reloading
+    - [ ] hot partial-reloading with diffing
 - [ ] keep up with the changes to the LDtk file format
 
 ### optional
@@ -21,3 +23,5 @@ So far, have just mapped the JSON structure to Rust data structures (for the mos
 - [ ] change from arrays of ints, to structs (using serde_tuple) (partially done)
 - [ ] change from structs with optional fields, to enums with unique structs (challenging)
 - [ ] add a lot of serialisation tests to ensure reproducability / round-trippability
+- [ ] (bevy) make it interactive the other way (changes from the bevy app write to the ldtk file)
+  - note: ldtk editor doesn't hot reload though
