@@ -27,7 +27,7 @@ macro_rules! files {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let json = include_str!(files!(AUTOLAYERS_4_ADVANCED));
+    let json = include_str!(files!(TYPICAL_2D_PLATFORMER_EXAMPLE));
     let mut data = Root::new(json)?;
 
     dbg!(data.bg_color);
@@ -135,6 +135,7 @@ pub struct TilesetHandles {
 }
 
 fn load_tilesets(
+    commands: &mut Commands,
     tilesets: Res<Vec<TilesetDefinition>>,
     mut tileset_handles: ResMut<TilesetHandles>,
     asset_server: Res<AssetServer>,
@@ -146,6 +147,7 @@ fn load_tilesets(
             asset_server.load::<_, _>(tileset.rel_path.as_str()),
         );
     }
+    commands.spawn(Camera2dBundle::default());
 }
 
 fn load_atlas(
@@ -219,7 +221,7 @@ fn load_atlas(
 
             let texture_atlas = TextureAtlas::from_grid_with_padding(
                 tileset_handle.clone(),
-                Vec2::splat(tileset.tile_grid_size as f32),
+                Vec2::splat(sprite as f32),
                 columns as usize,
                 rows as usize,
                 Vec2::splat(spacing as f32),
@@ -228,13 +230,12 @@ fn load_atlas(
             let texture = textures.get(tileset_handle).unwrap();
             cursor -= texture.size;
             let position = cursor + 0.5 * texture.size;
-            let position2 =
-                position + 0.5 * texture.size + Vec2::splat(0.5 * tileset.tile_grid_size as f32);
-            let mut transform2 = Transform::from_translation(position2.extend(0.0));
+            let position2_x = position.x + 0.5 * texture.size.x + 20.0 * sprite as f32 * 0.5;
+            let mut transform2 =
+                Transform::from_translation(Vec2::new(position2_x, position.y).extend(0.0));
             transform2.scale = Vec2::splat(20.0).extend(0.0);
             // set up a scene to display our texture atlas
             commands
-                .spawn(Camera2dBundle::default())
                 // // draw a specific* sprite from the atlas
                 // .spawn(SpriteSheetBundle {
                 //     transform: Transform {
@@ -253,7 +254,7 @@ fn load_atlas(
                 // draw the atlas itself
                 .spawn(SpriteBundle {
                     material: materials.add(tileset_handle.clone().into()),
-                    transform: Transform::from_translation(-position.extend(0.0)),
+                    transform: Transform::from_translation(position.extend(0.0)),
                     ..Default::default()
                 })
                 .spawn(SpriteSheetBundle {
