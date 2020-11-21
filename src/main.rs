@@ -1,4 +1,4 @@
-use bevy::{asset::LoadState, prelude::*, sprite::TextureAtlasBuilder};
+use bevy::{asset::LoadState, prelude::*};
 use ldtk_rs::{Root, TilesetDefinition};
 use std::collections::HashMap;
 
@@ -27,7 +27,7 @@ macro_rules! files {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let json = include_str!(files!(TYPICAL_2D_PLATFORMER_EXAMPLE));
+    let json = include_str!(files!(ENTITIES));
     let mut data = Root::new(json)?;
 
     dbg!(data.bg_color);
@@ -71,7 +71,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     dbg!(level.layer_instances.len());
     println!("...");
 
-    for (index, layer) in level.layer_instances.iter().enumerate() {
+    for (_index, layer) in level.layer_instances.iter().enumerate() {
         dbg!(layer.__c_hei);
         dbg!(layer.__c_wid);
         dbg!(layer.__grid_size);
@@ -120,9 +120,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .add_resource(level.layer_instances)
         .init_resource::<TilesetHandles>()
         .add_plugins(DefaultPlugins)
-        .add_startup_system(load_tilesets)
-        .add_system(load_atlas)
-        .add_system(animate_sprite_system)
+        .add_startup_system(load_tileset_textures)
+        .add_startup_system(setup)
+        .add_system(load_atlas_textures)
+        .add_system(spawn_sprites)
+        .add_system(animate_sprites)
         .run();
 
     Ok(())
@@ -130,146 +132,138 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 #[derive(Default)]
 pub struct TilesetHandles {
-    handles: HashMap<i32, Handle<Texture>>,
-    atlas_loaded: bool,
+    texture_handles: HashMap<i32, Handle<Texture>>,
+    loaded: bool,
+    atlas_handles: HashMap<i32, Handle<TextureAtlas>>,
 }
 
-fn load_tilesets(
-    commands: &mut Commands,
+fn setup(commands: &mut Commands) {
+    commands.spawn(Camera2dBundle::default());
+}
+
+fn load_tileset_textures(
     tilesets: Res<Vec<TilesetDefinition>>,
     mut tileset_handles: ResMut<TilesetHandles>,
     asset_server: Res<AssetServer>,
 ) {
     // load the folder and create handles to the files
     for tileset in tilesets.iter() {
-        tileset_handles.handles.insert(
+        tileset_handles.texture_handles.insert(
             tileset.uid,
             asset_server.load::<_, _>(tileset.rel_path.as_str()),
         );
     }
-    commands.spawn(Camera2dBundle::default());
 }
 
-fn load_atlas(
-    commands: &mut Commands,
+fn load_atlas_textures(
     mut tileset_handles: ResMut<TilesetHandles>,
     asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
     textures: Res<Assets<Texture>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
     tilesets: Res<Vec<TilesetDefinition>>,
 ) {
     // don't run this whole system if we've already loaded the atlas (i.e. run once only, when loaded)
-    if tileset_handles.atlas_loaded {
+    if tileset_handles.loaded {
         return;
     }
 
     // but if we haven't...
     // wait until texture assets are loaded
-    if let LoadState::Loaded = asset_server
-        .get_group_load_state(tileset_handles.handles.iter().map(|(_, handle)| handle.id))
-    {
-        // initialise a texture atlas builder
-        // let mut texture_atlas_builder = TextureAtlasBuilder::default(); // <- why does this need to be outside though?
-
-        // add the loaded texture assets to the builder
-        // for (_, handle) in tileset_handles.handles.iter() {
-        //     let texture = textures.get(handle).unwrap();
-        //     texture_atlas_builder.add_texture(handle.clone_weak(), &texture);
-        //     // <- what is clone_weak()?
-        // }
-
-        // build the texture atlas
-        // let texture_atlas = texture_atlas_builder.finish(&mut textures).unwrap();
-
-        // // get a handle to a specific* texture
-        // let vendor_handle =
-        //     asset_server.get_handle("textures/rpg/chars/vendor/generic-rpg-vendor.png");
-
-        // // before moving the new texture's handle into the atlas, get the index of that specific* texture in it
-        // let vendor_index = texture_atlas.get_texture_index(&vendor_handle).unwrap();
-
-        // before moving the new texture's handle into the atlas, clone it
-        // let texture = texture_atlas.texture.clone();
-
-        // move the new texture's handle into the texture atlas, adding it, and get the texture atlas handle
-        // let atlas_handle = texture_atlases.add(texture_atlas);
-
-        // let texture = tileset_handles.handles.iter().next().unwrap().1.clone();
-        // padding left | sprite | spacing | sprite | padding right
+    if let LoadState::Loaded = asset_server.get_group_load_state(
+        tileset_handles
+            .texture_handles
+            .iter()
+            .map(|(_, handle)| handle.id),
+    ) {
+        dbg!(tileset_handles.texture_handles.len());
+        // padding left | tile | spacing | tile | padding right
         // p | s | x | s | p
         // n = 2
-        // inner height/width = height/width - 2* padding;
-        // sprite(n) + spacing(n-1) = inner height/width
-        // sprite.n + spacing.n - spacing = inner height/width
-        // sprite.n + spacing.n = inner height/width + spacing
-        // n.(sprite + spacing) = inner height/width + spacing
-        // n = (inner height/width + spacing) / (sprite + spacing)
-        // n = (height/width - 2 * padding + spacing) / (sprite + spacing)
-        dbg!(tileset_handles.handles.len());
-        let mut cursor = Vec2::zero();
+        // inner_dimension = dimension - 2 * padding; where dimension is height or width
+        // tile.(n) + spacing.(n-1) = inner_dimension
+        // tile.n + spacing.n - spacing = inner_dimension
+        // tile.n + spacing.n = inner_dimension + spacing
+        // n.(tile + spacing) = inner_dimension + spacing
+        // n = (inner_dimension + spacing) / (tile + spacing)
+        // n = (dimension - 2 * padding + spacing) / (tile + spacing)
         for tileset in tilesets.iter() {
             let padding = dbg!(tileset.padding);
             let height = dbg!(tileset.px_hei);
             let width = dbg!(tileset.px_wid);
             let spacing = dbg!(tileset.spacing);
-            let sprite = dbg!(tileset.tile_grid_size);
+            let tile = dbg!(tileset.tile_grid_size);
             let uid = dbg!(tileset.uid);
-            let tileset_handle = tileset_handles.handles.get(&uid).unwrap();
-            let columns = dbg!((width - 2 * padding + spacing) / (sprite + spacing));
-            let rows = dbg!((height - 2 * padding + spacing) / (sprite + spacing));
+            let tileset_handle = tileset_handles.texture_handles.get(&uid).unwrap();
+            let columns = dbg!((width - 2 * padding + spacing) / (tile + spacing));
+            let rows = dbg!((height - 2 * padding + spacing) / (tile + spacing));
 
             let texture_atlas = TextureAtlas::from_grid_with_padding(
                 tileset_handle.clone(),
-                Vec2::splat(sprite as f32),
+                Vec2::splat(tile as f32),
                 columns as usize,
                 rows as usize,
                 Vec2::splat(spacing as f32),
             );
             let texture_atlas_handle = texture_atlases.add(texture_atlas);
-            let texture = textures.get(tileset_handle).unwrap();
-            cursor -= texture.size;
-            let position = cursor + 0.5 * texture.size;
-            let position2_x = position.x + 0.5 * texture.size.x + 20.0 * sprite as f32 * 0.5;
-            let mut transform2 =
-                Transform::from_translation(Vec2::new(position2_x, position.y).extend(0.0));
-            transform2.scale = Vec2::splat(20.0).extend(0.0);
-            // set up a scene to display our texture atlas
-            commands
-                // // draw a specific* sprite from the atlas
-                // .spawn(SpriteSheetBundle {
-                //     transform: Transform {
-                //         translation: Vec3::new(150.0, 0.0, 0.0),
-                //         // scale it up 4x
-                //         scale: Vec2::splat(4.0).extend(0.0),
-                //         ..Default::default()
-                //     },
-                //     // point to the texture atlas, and get the texture atlas handle
-                //     texture_atlas: atlas_handle,
-                //     // take a sprite from the texture atlas
-                //     sprite: TextureAtlasSprite::new(vendor_index as u32),
-                //     //
-                //     ..Default::default()
-                // })
-                // draw the atlas itself
-                .spawn(SpriteBundle {
-                    material: materials.add(tileset_handle.clone().into()),
-                    transform: Transform::from_translation(position.extend(0.0)),
-                    ..Default::default()
-                })
-                .spawn(SpriteSheetBundle {
-                    texture_atlas: texture_atlas_handle,
-                    transform: transform2,
-                    ..Default::default()
-                })
-                .with(Timer::from_seconds(0.5, true));
+            tileset_handles
+                .atlas_handles
+                .insert(uid, texture_atlas_handle);
         }
 
-        tileset_handles.atlas_loaded = true;
+        tileset_handles.loaded = true;
     }
 }
 
-fn animate_sprite_system(
+fn spawn_sprites(
+    commands: &mut Commands,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    tileset_handles: Res<TilesetHandles>,
+    tilesets: Res<Vec<TilesetDefinition>>,
+    mut done: Local<bool>,
+) {
+    // don't run this whole system if we've already loaded the atlas (i.e. run once only, when loaded)
+    if !tileset_handles.loaded || *done {
+        return;
+    }
+
+    let mut cursor = Vec2::new(640.0, 360.0);
+    const SCALE: f32 = 4.0;
+    for tileset in tilesets.iter() {
+        let height = tileset.px_hei;
+        let width = tileset.px_wid;
+        let tile = tileset.tile_grid_size;
+        let uid = tileset.uid;
+        let size = Vec2::new(width as f32, height as f32);
+        cursor -= size;
+        let position = cursor + 0.5 * size;
+        let position2_x = position.x - 0.5 * width as f32 - SCALE * tile as f32 * 0.5;
+        let mut transform2 =
+            Transform::from_translation(Vec2::new(position2_x, position.y).extend(0.0));
+        transform2.scale = Vec2::new(-SCALE, SCALE).extend(0.0); // X is reversed
+                                                                 // for now, just spawn one sprite per tile
+                                                                 // set up a scene to display our texture atlas
+        let texture_handle = tileset_handles.texture_handles.get(&uid).unwrap();
+        // draw the atlas (tilesheet) itself
+        commands.spawn(SpriteBundle {
+            material: materials.add(texture_handle.clone().into()),
+            transform: Transform::from_translation(position.extend(0.0)),
+            ..Default::default()
+        });
+        // draw one sprite (tile) from the atlas (tilesheet)
+        let texture_atlas_handle = tileset_handles.atlas_handles.get(&uid).unwrap();
+        commands
+            .spawn(SpriteSheetBundle {
+                texture_atlas: texture_atlas_handle.clone(),
+                transform: transform2,
+                ..Default::default()
+            })
+            .with(Timer::from_seconds(0.5, true));
+    }
+
+    *done = true;
+}
+
+fn animate_sprites(
     texture_atlases: Res<Assets<TextureAtlas>>,
     mut query: Query<(&mut Timer, &mut TextureAtlasSprite, &Handle<TextureAtlas>)>,
 ) {
