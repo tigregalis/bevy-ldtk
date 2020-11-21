@@ -6,7 +6,7 @@
 //! from the above Markdown documentation, to Rust code,
 //! using lots of regular expressions and the serde and serde_json docs.
 
-use serde::{Deserialize, Serialize};
+use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 
 type Dynamic = Value; // temporary
@@ -17,91 +17,91 @@ type Array<T> = Vec<T>;
 
 #[test]
 fn autolayers_1_basic() -> serde_json::Result<()> {
-    let str = include_str!("../assets/AutoLayers_1_basic.ldtk");
-    // dbg!(str);
-    // println!("{}", str);
-    // for (i, line) in str.lines().enumerate() {
+    let s = include_str!("../assets/AutoLayers_1_basic.ldtk");
+    // dbg!(s);
+    // println!("{}", s);
+    // for (i, line) in s.lines().enumerate() {
     //     println!("{: <3}: {}", i + 1, line);
     // }
-    let data: Root = serde_json::from_str(str)?;
+    let data: Root = serde_json::from_str(s)?;
     dbg!(data);
     Ok(())
 }
 
 #[test]
 fn autolayers_2_stamps() -> serde_json::Result<()> {
-    let str = include_str!("../assets/AutoLayers_2_stamps.ldtk");
-    // dbg!(str);
-    // println!("{}", str);
-    // for (i, line) in str.lines().enumerate() {
+    let s = include_str!("../assets/AutoLayers_2_stamps.ldtk");
+    // dbg!(s);
+    // println!("{}", s);
+    // for (i, line) in s.lines().enumerate() {
     //     println!("{: <3}: {}", i + 1, line);
     // }
-    let data: Root = serde_json::from_str(str)?;
+    let data: Root = serde_json::from_str(s)?;
     dbg!(data);
     Ok(())
 }
 
 #[test]
 fn autolayers_3_mosaic() -> serde_json::Result<()> {
-    let str = include_str!("../assets/AutoLayers_3_Mosaic.ldtk");
-    // dbg!(str);
-    // println!("{}", str);
-    // for (i, line) in str.lines().enumerate() {
+    let s = include_str!("../assets/AutoLayers_3_Mosaic.ldtk");
+    // dbg!(s);
+    // println!("{}", s);
+    // for (i, line) in s.lines().enumerate() {
     //     println!("{: <3}: {}", i + 1, line);
     // }
-    let data: Root = serde_json::from_str(str)?;
+    let data: Root = serde_json::from_str(s)?;
     dbg!(data);
     Ok(())
 }
 
 #[test]
 fn autolayers_4_advanced() -> serde_json::Result<()> {
-    let str = include_str!("../assets/AutoLayers_4_advanced.ldtk");
-    // dbg!(str);
-    // println!("{}", str);
-    // for (i, line) in str.lines().enumerate() {
+    let s = include_str!("../assets/AutoLayers_4_advanced.ldtk");
+    // dbg!(s);
+    // println!("{}", s);
+    // for (i, line) in s.lines().enumerate() {
     //     println!("{: <3}: {}", i + 1, line);
     // }
-    let data: Root = serde_json::from_str(str)?;
+    let data: Root = serde_json::from_str(s)?;
     dbg!(data);
     Ok(())
 }
 
 #[test]
 fn entities() -> serde_json::Result<()> {
-    let str = include_str!("../assets/Entities.ldtk");
-    // dbg!(str);
-    // println!("{}", str);
-    // for (i, line) in str.lines().enumerate() {
+    let s = include_str!("../assets/Entities.ldtk");
+    // dbg!(s);
+    // println!("{}", s);
+    // for (i, line) in s.lines().enumerate() {
     //     println!("{: <3}: {}", i + 1, line);
     // }
-    let data: Root = serde_json::from_str(str)?;
+    let data: Root = serde_json::from_str(s)?;
     dbg!(data);
     Ok(())
 }
 
 #[test]
 fn typical_2d_platformer_example() -> serde_json::Result<()> {
-    let str = include_str!("../assets/Typical_2D_platformer_example.ldtk");
-    // dbg!(str);
-    // println!("{}", str);
-    // for (i, line) in str.lines().enumerate() {
+    let s = include_str!("../assets/Typical_2D_platformer_example.ldtk");
+    // dbg!(s);
+    // println!("{}", s);
+    // for (i, line) in s.lines().enumerate() {
     //     println!("{: <3}: {}", i + 1, line);
     // }
-    let data: Root = serde_json::from_str(str)?;
+    let data: Root = serde_json::from_str(s)?;
     dbg!(data);
     Ok(())
 }
 
 #[test]
 fn typical_topdown_example() -> serde_json::Result<()> {
-    let str = include_str!("../assets/Typical_TopDown_example.ldtk");
-    // dbg!(str);
-    // println!("{}", str);
-    // for (i, line) in str.lines().enumerate() {
+    let s = include_str!("../assets/Typical_TopDown_example.ldtk");
+    // dbg!(s);
+    // println!("{}", s);
+    // for (i, line) in s.lines().enumerate() {
     //     println!("{: <3}: {}", i + 1, line);
     // }
-    let data: Root = serde_json::from_str(str)?;
+    let data: Root = serde_json::from_str(s)?;
     dbg!(data);
     Ok(())
 }
@@ -139,8 +139,8 @@ pub struct Root {
 }
 
 impl Root {
-    pub fn new(str: &str) -> serde_json::Result<Self> {
-        serde_json::from_str(str)
+    pub fn new(s: &str) -> serde_json::Result<Self> {
+        serde_json::from_str(s)
     }
 }
 
@@ -246,16 +246,26 @@ pub struct TileInstance {
     // TODO: Deserialize as a struct AutoLayerTileIds { ruleId, coordId, tileId } and struct TileLayerTileIds { coordId, tileId } instead using serde_tuple
     #[serde(rename = "d")]
     pub d: Array<Int>,
-    /// "Flip bits", a 2-bits integer to represent the mirror transformations of the tile.          - Bit 0 = X flip          - Bit 1 = Y flip          Examples: f=0 (no flip), f=1 (X flip only), f=2 (Y flip only), f=3 (both flips)
+    /// "Flip bits", a 2-bits integer to represent the mirror transformations of the tile.
+    ///
+    /// - Bit 0 = X flip
+    /// - Bit 1 = Y flip
+    ///
+    /// Examples:
+    ///
+    /// - f=0 (no flip)
+    /// - f=1 (X flip only)
+    /// - f=2 (Y flip only)
+    /// - f=3 (both flips)
     #[serde(rename = "f")]
-    pub f: Int,
+    pub f: Flip,
     /// (Changed 0.5.0) Pixel coordinates of the tile in the **layer** (`[x,y]` format). Don't forget optional layer offsets, if they exist!
     // TODO: Deserialize as a struct Coord { x, y } instead using serde_tuple
     #[serde(rename = "px")]
     pub px: Coord,
     /// Pixel coordinates of the tile in the **tileset** (`[x,y]` format)
-    #[serde(rename = "src")]
     // TODO: Deserialize as a struct Coord { x, y } instead using serde_tuple
+    #[serde(rename = "src")]
     pub src: Coord,
 }
 
@@ -704,20 +714,93 @@ pub struct EnumValue {
     pub tile_id: Option<Int>,
 }
 
-// temporary
-type Rect = Array<Int>;
-// #[derive(Serialize, Deserialize, Debug, Clone)]
-// pub struct Rect {
-//     pub x: Int,
-//     pub y: Int,
-//     pub width: Int,
-//     pub height: Int,
-// }
+///
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Rect {
+    pub x: Int,
+    pub y: Int,
+    pub width: Int,
+    pub height: Int,
+}
 
-// temporary
-type Coord = Array<Int>;
-// #[derive(Serialize, Deserialize, Debug, Clone)]
-// pub struct Coord {
-//     pub x: Int,
-//     pub y: Int,
-// }
+///
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Coord {
+    pub x: Int,
+    pub y: Int,
+}
+
+///
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct Flip {
+    pub x: bool,
+    pub y: bool,
+}
+
+impl<'de> Deserialize<'de> for Flip {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let i: i32 = Deserialize::deserialize(deserializer)?;
+        match i {
+            0 => Ok(Self { x: false, y: false }),
+            1 => Ok(Self { x: true, y: false }),
+            2 => Ok(Self { x: false, y: true }),
+            3 => Ok(Self { x: true, y: true }),
+            _ => Err(D::Error::custom(format!("invalid value for flip: {}", i))),
+        }
+    }
+}
+
+impl Serialize for Flip {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut i = 0;
+        if self.x {
+            i += 1;
+        }
+        if self.y {
+            i += 2;
+        }
+        serializer.serialize_i32(i)
+    }
+}
+
+#[test]
+fn test_flip() -> serde_json::Result<()> {
+    let s = "0";
+    let flip: Flip = serde_json::from_str(s)?;
+    assert_eq!(flip, Flip { x: false, y: false });
+    let s_roundtrip = serde_json::to_string(&flip)?;
+    assert_eq!(s, s_roundtrip);
+
+    let s = "1";
+    let flip: Flip = serde_json::from_str(s)?;
+    assert_eq!(flip, Flip { x: true, y: false });
+    let s_roundtrip = serde_json::to_string(&flip)?;
+    assert_eq!(s, s_roundtrip);
+
+    let s = "2";
+    let flip: Flip = serde_json::from_str(s)?;
+    assert_eq!(flip, Flip { x: false, y: true });
+    let s_roundtrip = serde_json::to_string(&flip)?;
+    assert_eq!(s, s_roundtrip);
+
+    let s = "3";
+    let flip: Flip = serde_json::from_str(s)?;
+    assert_eq!(flip, Flip { x: true, y: true });
+    let s_roundtrip = serde_json::to_string(&flip)?;
+    assert_eq!(s, s_roundtrip);
+
+    // TODO: test bad data
+    // let s = "4";
+    // let flip: Flip = serde_json::from_str(s)?;
+    // assert_eq!(flip, Flip { x: true, y: true });
+    // let s_roundtrip = serde_json::to_string(&flip)?;
+    // assert_eq!(s, s_roundtrip);
+
+    Ok(())
+}
