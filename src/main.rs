@@ -49,7 +49,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // dbg!(data.defs.enums.len());
     // dbg!(data.defs.external_enums.len());
 
-    dbg!(data.defs.layers.len());
+    // dbg!(data.defs.layers.len());
 
     // dbg!(data.defs.tilesets.len());
     // let tileset = &data.defs.tilesets[0];
@@ -116,14 +116,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // let layer1 = &level.layer_instances[1];
     // dbg!(layer1.level_id);
 
-    data.levels[0].layer_instances.iter().for_each(|layer| {
-        dbg!(&layer.__type);
-        dbg!(&layer.auto_layer_tiles.as_ref().unwrap().len());
-        dbg!(&layer.entity_instances.as_ref().unwrap().len());
-        dbg!(&layer.grid_tiles.as_ref().unwrap().len());
-        dbg!(&layer.int_grid.as_ref().unwrap().len());
-        println!("...");
-    });
+    // data.levels[0].layer_instances.iter().for_each(|layer| {
+    //     dbg!(&layer.__type);
+    //     dbg!(&layer.auto_layer_tiles.as_ref().unwrap().len());
+    //     dbg!(&layer.entity_instances.as_ref().unwrap().len());
+    //     dbg!(&layer.grid_tiles.as_ref().unwrap().len());
+    //     dbg!(&layer.int_grid.as_ref().unwrap().len());
+    //     println!("...");
+    // });
 
     let level = data.levels.remove(0); // TODO: more than one level `data.levels`, load on demand
 
@@ -140,7 +140,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .add_startup_system(load_tileset_textures)
         .add_startup_system(setup)
         .add_system(load_atlas_textures)
-        .add_system(spawn_sprites)
+        .add_system(spawn_tiles)
         .add_system(animate_sprites)
         .add_system(move_camera)
         .run();
@@ -244,12 +244,15 @@ fn load_atlas_textures(
                 .insert(uid, texture_atlas_handle);
 
             let mut position_to_index = HashMap::new();
-            // dbg!(rows, columns);
             for y in 0..rows {
                 for x in 0..columns {
-                    // dbg!(x, y);
-                    // TODO: This won't work with any sort of padding
-                    position_to_index.insert((x * tile, y * tile), (y * columns + x) as u32);
+                    position_to_index.insert(
+                        (
+                            padding + x * (tile + spacing),
+                            padding + y * (tile + spacing),
+                        ),
+                        (y * columns + x) as u32,
+                    );
                 }
             }
             // dbg!(position_to_index.len());
@@ -271,10 +274,10 @@ fn load_atlas_textures(
                     }
                 }
                 "Entities" => {
-                    println!("do nothing");
+                    // println!("do nothing");
                 }
                 _ => {
-                    eprintln!("unrecognised layer type");
+                    eprintln!("unrecognised layer type: {}", layer.__type.as_str());
                 }
             }
         }
@@ -283,7 +286,7 @@ fn load_atlas_textures(
     }
 }
 
-fn spawn_sprites(
+fn spawn_tiles(
     commands: &mut Commands,
     mut _materials: ResMut<Assets<ColorMaterial>>,
     tileset_handles: Res<TilesetHandles>,
@@ -296,80 +299,17 @@ fn spawn_sprites(
         return;
     }
     let scale = 4.0;
-    for layer in layers.iter().rev() {
-        dbg!(&layer.__type);
-        dbg!(&layer.layer_def_uid);
+    for (layer_index, layer) in layers.iter().enumerate() {
+        let layer_index = (layers.len() - layer_index) as f32 / layers.len() as f32;
+        dbg!(layer_index);
+        dbg!(layer.__identifier.as_str());
+        // dbg!(&layer.__type);
+        // dbg!(&layer.layer_def_uid);
         if let Some(tileset_uid) = tileset_handles.layer_to_tileset.get(&layer.layer_def_uid) {
             let position_to_index = tileset_handles.position_to_index.get(tileset_uid).unwrap();
-            match layer.__type.as_str() {
-                "AutoLayer" | "IntGrid" => {
-                    println!("todo: spawn actual things");
-                    if let Some(ref tiles) = layer.auto_layer_tiles {
-                        for tile in tiles.iter() {
-                            let mut scale_x = scale;
-                            let mut scale_y = scale;
-                            if tile.f.x {
-                                scale_x = -scale_x;
-                            }
-                            if tile.f.y {
-                                scale_y = -scale_y;
-                            }
-                            let x = tile.px.x as f32 * scale;
-                            let y = -(tile.px.y as f32) * scale;
-                            let mut transform = Transform::from_translation(Vec3::new(x, y, 0.0));
-                            transform.scale = Vec3::new(scale_x, scale_y, 0.0);
-
-                            let index = position_to_index
-                                .get(&(tile.src.x, tile.src.y))
-                                .unwrap_or_else(|| panic!("src ({}, {})", tile.src.x, tile.src.y));
-
-                            commands.spawn(SpriteSheetBundle {
-                                sprite: TextureAtlasSprite::new(*index),
-                                texture_atlas: tileset_handles
-                                    .atlas_handles
-                                    .get(tileset_uid)
-                                    .unwrap()
-                                    .clone(),
-                                transform,
-                                ..Default::default()
-                            });
-                        }
-                    }
-                }
-                "Tiles" => {
-                    println!("this is the simplest, so spawn these");
-                    if let Some(ref tiles) = layer.grid_tiles {
-                        for tile in tiles.iter() {
-                            let mut scale_x = scale;
-                            let mut scale_y = scale;
-                            if tile.f.x {
-                                scale_x = -scale_x;
-                            }
-                            if tile.f.y {
-                                scale_y = -scale_y;
-                            }
-                            let x = tile.px.x as f32 * scale;
-                            let y = -(tile.px.y as f32) * scale;
-                            let mut transform = Transform::from_translation(Vec3::new(x, y, 0.0));
-                            transform.scale = Vec3::new(scale_x, scale_y, 0.0);
-
-                            let index = position_to_index
-                                .get(&(tile.src.x, tile.src.y))
-                                .unwrap_or_else(|| panic!("src ({}, {})", tile.src.x, tile.src.y));
-
-                            commands.spawn(SpriteSheetBundle {
-                                sprite: TextureAtlasSprite::new(*index),
-                                texture_atlas: tileset_handles
-                                    .atlas_handles
-                                    .get(tileset_uid)
-                                    .unwrap()
-                                    .clone(),
-                                transform,
-                                ..Default::default()
-                            });
-                        }
-                    }
-                }
+            if let Some(tiles) = match layer.__type.as_str() {
+                "AutoLayer" | "IntGrid" => layer.auto_layer_tiles.as_ref(),
+                "Tiles" => layer.grid_tiles.as_ref(),
                 // "IntGrid" => {
                 // actually, below shouldn't technically spawn any sprites
                 // but we should use it from a gameplay perspective
@@ -388,10 +328,44 @@ fn spawn_sprites(
                     //         dbg!(entity);
                     //     }
                     // }
-                    println!("do nothing");
+                    // println!("do nothing");
+                    None
                 }
                 _ => {
-                    eprintln!("unrecognised layer type");
+                    eprintln!("skipped unrecognised layer type: {}", layer.__type.as_str());
+                    None
+                }
+            } {
+                for tile in tiles.iter() {
+                    let mut scale_x = scale;
+                    let mut scale_y = scale;
+                    if tile.f.x {
+                        scale_x = -scale_x;
+                    }
+                    if tile.f.y {
+                        scale_y = -scale_y;
+                    }
+                    let x = tile.px.x as f32 * scale;
+                    let y = -(tile.px.y as f32) * scale;
+                    let mut transform = Transform::from_translation(Vec3::new(x, y, layer_index));
+                    transform.scale = Vec3::new(scale_x, scale_y, 0.0);
+
+                    let index = position_to_index
+                        .get(&(tile.src.x, tile.src.y))
+                        .unwrap_or_else(|| {
+                            panic!("unrecognised src: ({}, {})", tile.src.x, tile.src.y)
+                        });
+
+                    commands.spawn(SpriteSheetBundle {
+                        sprite: TextureAtlasSprite::new(*index),
+                        texture_atlas: tileset_handles
+                            .atlas_handles
+                            .get(tileset_uid)
+                            .unwrap()
+                            .clone(),
+                        transform,
+                        ..Default::default()
+                    });
                 }
             }
         }
@@ -470,7 +444,6 @@ fn move_camera(
     for mut transform in query.iter_mut() {
         if dx.abs() + dy.abs() > 0.0 {
             let v = Vec2::new(dx, dy).normalize().extend(0.0) * SPEED * dt;
-            dbg!(&v);
             transform.translation += v * SPEED * dt;
         }
     }

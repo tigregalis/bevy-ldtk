@@ -150,7 +150,7 @@ pub struct Level {
     /// Unique String identifier
     #[serde(rename = "identifier")]
     pub identifier: String,
-    /// Array of [LayerInstance]
+    /// Array of [`LayerInstance`]
     #[serde(rename = "layerInstances")]
     pub layer_instances: Array<LayerInstance>,
     /// Height of the level in pixels
@@ -315,7 +315,8 @@ pub struct FieldInstance {
     /// Type of the field, such as Int, Float, Enum(enum_name), Bool, etc.
     #[serde(rename = "__type")]
     pub __type: String,
-    /// (Anything) Actual value of the field instance. The value type may vary, depending on `__type` (Integer, Boolean, String etc.)         It can also be an `Array` of various types.
+    /// (Anything) Actual value of the field instance. The value type may vary, depending on `__type` (Integer, Boolean, String etc.)
+    /// It can also be an `Array` of various types.
     #[serde(rename = "__value")]
     pub __value: Dynamic,
     /// Reference of the **Field definition** UID
@@ -360,7 +361,7 @@ pub struct LayerDefinition {
     // TODO: see above TODO: unwrap from Option<T> when included, omit when not included
     #[serde(rename = "autoSourceLayerDefUid")]
     pub auto_source_layer_def_uid: Option<Int>,
-    /// <sup>Only *Auto-layers*</sup> Reference to the Tileset UID being used by this auto-layer rules
+    /// <sup>Only *Auto-layers* and *IntGrid layers*</sup> Reference to the Tileset UID being used by this auto-layer rules
     // TODO: see above TODO: unwrap from Option<T> when included, omit when not included
     #[serde(rename = "autoTilesetDefUid")]
     pub auto_tileset_def_uid: Option<Int>,
