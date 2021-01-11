@@ -17,7 +17,7 @@ type Array<T> = Vec<T>;
 
 #[test]
 fn autolayers_1_basic() -> serde_json::Result<()> {
-    let s = include_str!("../assets/AutoLayers_1_basic.ldtk");
+    let s = include_str!("../../../assets/AutoLayers_1_basic.ldtk");
     // dbg!(s);
     // println!("{}", s);
     // for (i, line) in s.lines().enumerate() {
@@ -30,7 +30,7 @@ fn autolayers_1_basic() -> serde_json::Result<()> {
 
 #[test]
 fn autolayers_2_stamps() -> serde_json::Result<()> {
-    let s = include_str!("../assets/AutoLayers_2_stamps.ldtk");
+    let s = include_str!("../../../assets/AutoLayers_2_stamps.ldtk");
     // dbg!(s);
     // println!("{}", s);
     // for (i, line) in s.lines().enumerate() {
@@ -43,7 +43,7 @@ fn autolayers_2_stamps() -> serde_json::Result<()> {
 
 #[test]
 fn autolayers_3_mosaic() -> serde_json::Result<()> {
-    let s = include_str!("../assets/AutoLayers_3_Mosaic.ldtk");
+    let s = include_str!("../../../assets/AutoLayers_3_Mosaic.ldtk");
     // dbg!(s);
     // println!("{}", s);
     // for (i, line) in s.lines().enumerate() {
@@ -56,7 +56,7 @@ fn autolayers_3_mosaic() -> serde_json::Result<()> {
 
 #[test]
 fn autolayers_4_advanced() -> serde_json::Result<()> {
-    let s = include_str!("../assets/AutoLayers_4_advanced.ldtk");
+    let s = include_str!("../../../assets/AutoLayers_4_advanced.ldtk");
     // dbg!(s);
     // println!("{}", s);
     // for (i, line) in s.lines().enumerate() {
@@ -69,7 +69,7 @@ fn autolayers_4_advanced() -> serde_json::Result<()> {
 
 #[test]
 fn entities() -> serde_json::Result<()> {
-    let s = include_str!("../assets/Entities.ldtk");
+    let s = include_str!("../../../assets/Entities.ldtk");
     // dbg!(s);
     // println!("{}", s);
     // for (i, line) in s.lines().enumerate() {
@@ -82,7 +82,7 @@ fn entities() -> serde_json::Result<()> {
 
 #[test]
 fn typical_2d_platformer_example() -> serde_json::Result<()> {
-    let s = include_str!("../assets/Typical_2D_platformer_example.ldtk");
+    let s = include_str!("../../../assets/Typical_2D_platformer_example.ldtk");
     // dbg!(s);
     // println!("{}", s);
     // for (i, line) in s.lines().enumerate() {
@@ -95,7 +95,7 @@ fn typical_2d_platformer_example() -> serde_json::Result<()> {
 
 #[test]
 fn typical_topdown_example() -> serde_json::Result<()> {
-    let s = include_str!("../assets/Typical_TopDown_example.ldtk");
+    let s = include_str!("../../../assets/Typical_TopDown_example.ldtk");
     // dbg!(s);
     // println!("{}", s);
     // for (i, line) in s.lines().enumerate() {

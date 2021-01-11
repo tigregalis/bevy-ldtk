@@ -299,6 +299,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0d5f2f58f0aec3c50a20799792c3705e80dd7df327e79791cacec197e84e5e61"
 
 [[package]]
+name = "bevy-ldtk"
+version = "0.1.0"
+dependencies = [
+ "bevy 0.3.0 (git+https://github.com/bevyengine/bevy)",
+ "ldtk-rs",
+]
+
+[[package]]
+name = "bevy-ldtk-plugin"
+version = "0.1.0"
+dependencies = [
+ "bevy 0.3.0 (git+https://github.com/bevyengine/bevy)",
+ "bevy_tilemap",
+]
+
+[[package]]
 name = "bevy_app"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2632,8 +2648,6 @@ checksum = "830d08ce1d1d941e6b30645f1a0eb5643013d835ce3779a5fc208261dbe10f55"
 name = "ldtk-rs"
 version = "0.1.0"
 dependencies = [
- "bevy 0.3.0 (git+https://github.com/bevyengine/bevy)",
- "bevy_tilemap",
  "serde",
  "serde_json",
 ]
